@@ -1,6 +1,7 @@
-from django.utils import html, encoding, formats, timesince
 import jingo
 import jinja2
+from django.conf import settings
+from django.utils import html, encoding, formats, timesince
 from typogrify.templatetags import jinja2_filters
 
 

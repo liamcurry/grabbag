@@ -17,5 +17,5 @@ class TestClient(Client):
 
 
 class TestCase(test_utils.TestCase):
-    
+
     client_class = TestClient
