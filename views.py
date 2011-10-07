@@ -9,6 +9,60 @@ import jingo
 from session_csrf import anonymous_csrf
 
 
+class FileConvertMixin(object):
+    """
+    A generic mixin for uploading files with Plupload.
+    Must define the `handle_file` method for it to work.
+    """
+
+    file_kwarg = 'file'
+
+    def get_form_kwargs(self):
+        kwargs = {'initial': self.get_initial()}
+        if self.request.method in ('POST', 'PUT'):
+            files = self.request.FILES
+            files[self.file_kwarg] = files['file']
+            kwargs.update({
+                'data': self.request.POST,
+                'files': files,
+            })
+        return kwargs
+
+    def post(self, request, **kwargs):
+        
+        form_class = self.get_form_class()
+        form = self.get_form(form_class)
+        if form.is_valid():
+            
+            if not request.is_ajax():
+                return self.form_valid()
+            
+            uploaded_file = request.FILES['file']
+            chunk = request.REQUEST.get('chunk', '0')
+            chunks = request.REQUEST.get('chunks', '0')
+            name = request.REQUEST.get('name', '')
+
+            if not name:
+                name = uploaded_file.name
+
+            # Make this secure
+            temp_file_path = os.path.join('/tmp/tmpfile.tmp')
+
+            temp_file = open(temp_file_path, ('wb' if chunk == '0' else 'ab'))
+            for content in uploaded_file.chunks():
+                temp_file.write(content)
+
+            if int(chunk) + 1 >= int(chunks):
+                self.handle_file(temp_file, name)
+
+            response = HttpResponse('{"jsonrpc": "2.0", "result": null, "id": "id"}',
+                                    mimetype='text/plain; charset=UTF-8')
+            response['Expires'] = 'Mon, 1 Jan 2000 01:00:00 GMT'
+            response['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
+            response['Pragma'] = 'no-cache'
+            return response
+
+
 class JingoResponseMixin(object):
 
     def render_to_response(self, context, **response_kwargs):
