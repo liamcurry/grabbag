@@ -42,3 +42,8 @@ def firstof(context, *args):
         if arg:
             return encoding.smart_unicode(arg)
     return ''
+
+
+@jingo.register.filter
+def spaceless(value):
+    return jinja2.Markup(' '.join(value.strip('\n').split()))

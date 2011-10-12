@@ -1,11 +1,12 @@
+import os
+
+import jingo
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.utils.encoding import smart_str
-
-import jingo
 from session_csrf import anonymous_csrf
 
 
@@ -29,7 +30,7 @@ class FileConvertMixin(object):
         return kwargs
 
     def post(self, request, **kwargs):
-        
+
         form_class = self.get_form_class()
         form = self.get_form(form_class)
         if form.is_valid():
@@ -130,7 +131,7 @@ class ChildMixin(object):
         if not self.parent:
             self.get_parent()
         self.parent_context_object_name = (self.get_parent_context_object_name(
-                                                self.parent))
+                                           self.parent))
         context[self.parent_context_object_name] = self.parent
         return context
 
