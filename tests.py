@@ -1,13 +1,9 @@
-import logging
-
-import test_utils
 from functools import partial
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.test import TestCase as DjangoTestCase
 from django.test.client import Client
-
-
-logging.disable(logging.INFO)
+from pyquery import PyQuery
 
 
 def get_absolute_uri(path):
@@ -36,16 +32,52 @@ class TestClient(Client):
             raise AttributeError
 
 
-class TestCase(test_utils.TestCase):
+class TestCase(DjangoTestCase):
 
     client_class = TestClient
 
 
+class TestCaseWithUrl(TestCase):
+
+    url = None
+
+    def setUp(self):
+        super(TestCaseWithUrl, self).setUp()
+        self.response = self.client.get(self.url)
+        self.pq = PyQuery(self.response.content)
+
+    def find(self, selector):
+        return self.pq.find(selector)
+
+
+class AsAnonMixin(object):
+    pass
+
+
+class AsUserMixin(object):
+
+    credentials = settings.TEST_CREDENTIALS['user']
+
+    def __init__(self, *args, **kwargs):
+        if not hasattr(self, 'fixtures'):
+            self.fixtures = []
+        self.fixtures.append('accounts/users.json')
+        super(AsUserMixin, self).__init__(*args, **kwargs)
+
+    def setUp(self):
+        self.client.login(**self.credentials)
+        super(AsUserMixin, self).setUp()
+
+
+class AsAdminMixin(AsUserMixin):
+
+    credentials = settings.TEST_CREDENTIALS['admin']
+
+
 try:
     from selenium import webdriver
-    from selenium.webdriver.common.keys import Keys
 
-    class BrowserTestCase(TestCase):
+    class SeleniumTestCase(TestCase):
 
         url = None
 
@@ -61,11 +93,11 @@ try:
 
 
         def setUp(self):
-            super(BrowserTestCase, self).setUp()
+            super(SeleniumTestCase, self).setUp()
             self.setup_browser()
             
         def tearDown(self):
-            super(BrowserTestCase, self).tearDown()
+            super(SeleniumTestCase, self).tearDown()
             self.browser.close()
 
         def find(self, selector, context=None):
@@ -74,38 +106,6 @@ try:
                 return context.find_elements_by_css_selector(selector)
             else:
                 return self.browser.find_elements_by_css_selector(selector)
-
-
-    class AsAnonMixin(object):
-        pass
-
-
-    class AsUserMixin(object):
-
-        credentials = settings.TEST_CREDENTIALS['user']
-
-        def __init__(self, *args, **kwargs):
-            if not hasattr(self, 'fixtures'):
-                self.fixtures = []
-            self.fixtures.append('accounts/users.json')
-            super(AsUserMixin, self).__init__(*args, **kwargs)
-
-        def goto_initial_url(self):
-            self.browser.get(get_absolute_uri(settings.LOGIN_URL))
-
-            username_field = self.browser.find_element_by_name('username')
-            username_field.send_keys(self.credentials['username'])
-
-            password_field = self.browser.find_element_by_name('password')
-            password_field.send_keys(self.credentials['password'])
-            password_field.send_keys(Keys.RETURN)
-
-            self.browser.get(self.url)
-
-
-    class AsAdminMixin(AsUserMixin):
-
-        credentials = settings.TEST_CREDENTIALS['admin']
 
 
 except ImportError:
