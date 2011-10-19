@@ -7,7 +7,6 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.utils.encoding import smart_str
-from session_csrf import anonymous_csrf
 
 
 class FileConvertMixin(object):
@@ -70,12 +69,19 @@ class JingoResponseMixin(object):
         return jingo.render(self.request, self.get_template_names()[0],
                             context, **response_kwargs)
 
+try:
+    from session_csrf import anonymous_csrf
 
-class AnonymousCSRF(object):
+    class AnonymousCSRF(object):
 
-    @method_decorator(anonymous_csrf)
-    def dispatch(self, *args, **kwargs):
-        return super(AnonymousCSRF, self).dispatch(*args, **kwargs)
+        @method_decorator(anonymous_csrf)
+        def dispatch(self, *args, **kwargs):
+            return super(AnonymousCSRF, self).dispatch(*args, **kwargs)
+
+except:
+    
+    class AnonymousCSRF(object):
+        pass
 
 
 class AdminRequiredMixin(object):
